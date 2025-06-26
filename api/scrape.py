@@ -39,4 +39,10 @@ def scrape():
                 return jsonify({"error": "Nicht alle Preise gefunden"}), 404
 
             return jsonify({
-                "
+                "hauspreis": prices[0],
+                "wohnungspreis": prices[1]
+            }), 200
+
+    except Exception as e:
+        logger.error(f"Error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
