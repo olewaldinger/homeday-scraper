@@ -1,8 +1,0 @@
-{
-  "buildCommand": "playwright install chromium",
-  "functions": {
-    "api/scrape.py": {
-      "runtime": "vercel-python@0.7.1"
-    }
-  }
-}
