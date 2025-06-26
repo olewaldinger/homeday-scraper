@@ -1,40 +1,40 @@
+from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 
-def handler(request):
+app = Flask(__name__)
+
+@app.route("/api/scrape")
+def scrape():
+    address = request.args.get("address", "")
+    if not address:
+        return jsonify({"error": "Address missing"}), 400
+
+    search_address = address.lower().replace(" ", "-")
+    url = f"https://www.homeday.de/de/preisatlas/{search_address}"
+
     try:
-        address = request.query.get("address", "")
-        if not address:
-            return {
-                "statusCode": 400,
-                "body": "Address missing"
-            }
-
-        search_address = address.lower().replace(" ", "-")
-        url = f"https://www.homeday.de/de/preisatlas/{search_address}"
-
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
             page.goto(url, timeout=30000)
             page.wait_for_timeout(5000)
 
-            content = page.content()
-            if "Preisspanne" not in content:
-                return {
-                    "statusCode": 404,
-                    "body": "Preisspanne nicht gefunden"
-                }
+            elements = page.query_selector_all("p.price-block__price__average")
+            prices = [el.inner_text() for el in elements if el]
 
-            el = page.query_selector("h3:has-text('Preisspanne')")
-            text = el.inner_text() if el else "Kein Preis gefunden"
+            browser.close()
 
-        return {
-            "statusCode": 200,
-            "body": text
-        }
+            if len(prices) < 2:
+                return jsonify({"error": "Nicht alle Preise gefunden"}), 404
+
+            return jsonify({
+                "hauspreis": prices[0],
+                "wohnungspreis": prices[1]
+            }), 200
 
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": str(e)
-        }
+        return jsonify({"error": str(e)}), 500
+
+# Nur lokal:
+if __name__ == "__main__":
+    app.run(debug=True)
