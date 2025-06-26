@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
+import os
 
 app = Flask(__name__)
 
@@ -16,7 +17,7 @@ def scrape():
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url, timeout=30000)
+            page.goto(url, timeout=60000)  # Erhöht auf 60 Sekunden für langsamere Ladezeiten
             page.wait_for_timeout(5000)
 
             elements = page.query_selector_all("p.price-block__price__average")
@@ -35,9 +36,7 @@ def scrape():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Nur lokal:
-import os
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
-
+# Der folgende Block wurde entfernt, da Gunicorn den Server startet
+# if __name__ == "__main__":
+#     port = int(os.getenv("PORT", 8080))
+#     app.run(host="0.0.0.0", port=port)
